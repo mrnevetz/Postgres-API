@@ -3,21 +3,21 @@ const bodyParser = require('body-parser')
 const app = express()
 const port = 3000
 
+const Pool = require('pg').Pool
+const pool = new Pool({
+  user: 'gmdb_app',
+  password: 'password',
+  host: 'localhost',
+  database: 'students',
+  port: 5432
+})
+
 app.use(bodyParser.json())
 app.use(
     bodyParser.urlencoded({
         extended: true,
     })
 )
-
-
-const students = [
-    { id: 1, name: 'Steve Peterson' },
-    { id: 2, name: 'John Doe' },
-    { id: 3, name: 'Jane Doe' },
-    { id: 4, name: 'Donald Trump' },
-    { id: 5, name: 'George Washington' }
-];
 
 var grades = [
     { id: 1, grade: 'A' },
@@ -31,13 +31,37 @@ app.get('/', (req, res) => {
 });
 
 app.get('/students', (req, res) => {
-    res.send(students);
+    pool.query('SELECT * FROM students', (error, results) => {
+        if (error) {
+          throw error
+        }
+        res.status(200).json(results.rows)
+      })
 });
 
+
 app.get('/students/:id', (req, res) => {
-    id = req.params.id;
-    res.send("<b>Student Details</b><br />Id: "+id +"<br />Name: "+students[id]);
+    const id = parseInt(req.params.id)
+
+    pool.query('SELECT * FROM students WHERE id = $1', [id], (error, results) => {
+      if (error) {
+        throw error
+      }
+      res.status(200).json(results.rows)
+    })
 });
+
+
+app.get('/student', (req, res) => {
+    const searchString = req.query.search
+    pool.query('SELECT * FROM students WHERE name like \'%' +searchString +'%\'', (error, results) => {
+       if (error) {
+        throw error
+      }
+      res.status(200).json(results.rows)
+    })
+});
+
 
 app.get('/grades/:id', (req, res) => {
     const idGrades = grades.find(x => x.id === parseInt(req.params.id));
