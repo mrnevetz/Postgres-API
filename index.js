@@ -12,24 +12,16 @@ const pool = new Pool({
   port: 5432
 })
 
+app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
-app.use(
-    bodyParser.urlencoded({
-        extended: true,
-    })
-)
 
-var grades = [
-    { id: 1, grade: 'A' },
-    { id: 2, grade: 'A' },
-    { id: 3, grade: 'B' },
-    { id: 4, grade: 'C' }
-]
 
+// root route; just says hello
 app.get('/', (req, res) => {
     res.send("'Hello World! This is the Home Page.<br /><br /><A HREF='/students'>Student List</a>");
 });
 
+//displays list of all students
 app.get('/students', (req, res) => {
     pool.query('SELECT * FROM students', (error, results) => {
         if (error) {
@@ -39,7 +31,7 @@ app.get('/students', (req, res) => {
       })
 });
 
-
+//search for specific student by id
 app.get('/students/:id', (req, res) => {
     const id = parseInt(req.params.id)
 
@@ -51,7 +43,7 @@ app.get('/students/:id', (req, res) => {
     })
 });
 
-
+//search for any students matching query parameter ?search=
 app.get('/student', (req, res) => {
     const searchString = req.query.search
     pool.query('SELECT * FROM students WHERE name like \'%' +searchString +'%\'', (error, results) => {
@@ -62,17 +54,19 @@ app.get('/student', (req, res) => {
     })
 });
 
+//add new grade to database
+app.post('/grade', (req, res) => {
+    const studentId = req.body.studentId
+    const grade = req.body.grade
 
-app.get('/grades/:id', (req, res) => {
-    const idGrades = grades.find(x => x.id === parseInt(req.params.id));
-    if (!idGrades) res.status(400).send('No grades found for this student');
-    res.send(idGrades);
+    pool.query('INSERT INTO grades (studentId, grade) VALUES ($1, $2)', [studentId, grade], (error, results) => {
+        if (error) {
+            throw error
+           }
+           res.status(201).send('Grade of: ' +grade +' added for studentID: ' +studentId)
+    })
 });
 
-app.post('/grades', (req, res) => {
-    app.use(bodyParser.json());
-    res.send(req.body);
-});
 
 app.listen(port, () => {
     console.log(`Example app is listening on ${port}`);
